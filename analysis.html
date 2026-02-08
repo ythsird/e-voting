@@ -1,0 +1,1447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <title>Voting Analytics Dashboard</title>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%);
+            --card-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            --mobile-breakpoint: 768px;
+        }
+        
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        body {
+            background: var(--primary-gradient);
+            min-height: 100vh;
+            padding: 10px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            overflow-x: hidden;
+        }
+        
+        /* Mobile-first responsive container */
+        .dashboard-container {
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 16px;
+            padding: 20px 15px;
+            box-shadow: var(--card-shadow);
+            margin-top: 10px;
+            width: 100%;
+            max-width: 100%;
+            overflow: hidden;
+        }
+        
+        /* Mobile Header */
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #667eea;
+        }
+        
+        .header h1 {
+            color: #333;
+            font-weight: 700;
+            font-size: clamp(1.8rem, 5vw, 2.5rem);
+            margin-bottom: 8px;
+            line-height: 1.2;
+        }
+        
+        .header .subtitle {
+            color: #666;
+            font-size: clamp(0.9rem, 3vw, 1.1rem);
+            margin-bottom: 15px;
+        }
+        
+        /* Mobile Stats Cards */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        
+        .stats-card {
+            background: var(--primary-gradient);
+            color: white;
+            border-radius: 12px;
+            padding: 20px 15px;
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+            transition: transform 0.2s ease;
+            text-align: center;
+            min-height: 120px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        
+        .stats-card:active {
+            transform: scale(0.98);
+        }
+        
+        .stats-card h3 {
+            font-size: clamp(1.8rem, 4vw, 2.2rem);
+            font-weight: 700;
+            margin-bottom: 5px;
+            line-height: 1;
+        }
+        
+        .stats-card p {
+            opacity: 0.9;
+            font-size: clamp(0.85rem, 2.5vw, 0.95rem);
+            margin-bottom: 0;
+        }
+        
+        /* Mobile Charts */
+        .chart-container {
+            background: white;
+            border-radius: 14px;
+            padding: 20px 15px;
+            margin-bottom: 20px;
+            box-shadow: var(--card-shadow);
+            position: relative;
+        }
+        
+        .chart-container h3, 
+        .chart-container h4 {
+            color: #333;
+            font-size: clamp(1.2rem, 4vw, 1.5rem);
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+        
+        /* Original Team Performance Design */
+        .team-card {
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            background: #f8f9fa;
+            border-left: 5px solid #667eea;
+            transition: all 0.3s;
+            touch-action: manipulation;
+        }
+        
+        .team-card:hover {
+            background: #e9ecef;
+            transform: translateX(5px);
+        }
+        
+        .team-name {
+            font-weight: 600;
+            font-size: 1.2rem;
+            color: #333;
+        }
+        
+        .vote-count {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #667eea;
+        }
+        
+        .percentage-bar {
+            height: 10px;
+            background: #e9ecef;
+            border-radius: 5px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+        
+        .percentage-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            border-radius: 5px;
+            transition: width 1s ease-in-out;
+        }
+        
+        /* Mobile Prediction Card */
+        .prediction-card {
+            background: var(--secondary-gradient);
+            color: white;
+            border-radius: 14px;
+            padding: 20px;
+            box-shadow: 0 8px 25px rgba(76, 175, 80, 0.3);
+            margin-bottom: 20px;
+        }
+        
+        .prediction-card h4 {
+            font-size: clamp(1.1rem, 3vw, 1.3rem);
+            margin-bottom: 15px;
+        }
+        
+        .prediction-card h2 {
+            font-size: clamp(1.8rem, 4vw, 2.2rem);
+            margin: 10px 0;
+        }
+        
+        /* Mobile Connection Status */
+        .connection-status {
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            z-index: 1000;
+            font-size: 0.85rem;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+        
+        .connected {
+            background: rgba(76, 175, 80, 0.9);
+            color: white;
+        }
+        
+        .disconnected {
+            background: rgba(244, 67, 54, 0.9);
+            color: white;
+        }
+        
+        /* Mobile Buttons */
+        .refresh-btn {
+            background: var(--primary-gradient);
+            border: none;
+            color: white;
+            padding: 12px 25px;
+            border-radius: 25px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            margin: 15px 0;
+        }
+        
+        .refresh-btn:active {
+            transform: scale(0.95);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        /* Mobile Table */
+        .table-responsive {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            border-radius: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .table {
+            font-size: clamp(0.85rem, 2.5vw, 0.95rem);
+            min-width: 600px;
+        }
+        
+        .table th {
+            font-weight: 600;
+            background: #f8f9fa;
+            white-space: nowrap;
+            padding: 12px 10px;
+        }
+        
+        .table td {
+            padding: 10px;
+            vertical-align: middle;
+        }
+        
+        /* Badges for Mobile */
+        .badge {
+            font-size: 0.8rem;
+            padding: 5px 10px;
+            border-radius: 12px;
+        }
+        
+        /* Mobile Footer */
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #666;
+            font-size: clamp(0.8rem, 2.5vw, 0.9rem);
+            line-height: 1.4;
+            padding: 0 10px;
+        }
+        
+        /* Mobile Toggle for Charts */
+        .chart-toggle {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            overflow-x: auto;
+            padding-bottom: 10px;
+        }
+        
+        .chart-toggle-btn {
+            padding: 8px 16px;
+            background: #f0f0f0;
+            border: none;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+        
+        .chart-toggle-btn.active {
+            background: #667eea;
+            color: white;
+        }
+        
+        /* Mobile Menu for Navigation */
+        .mobile-menu {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            border-radius: 25px;
+            padding: 12px 20px;
+            box-shadow: 0 -5px 30px rgba(0,0,0,0.15);
+            display: flex;
+            gap: 25px;
+            z-index: 1000;
+        }
+        
+        .menu-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            color: #666;
+            text-decoration: none;
+            font-size: 0.8rem;
+        }
+        
+        .menu-item.active {
+            color: #667eea;
+        }
+        
+        .menu-icon {
+            font-size: 1.2rem;
+        }
+        
+        /* Web View - Show all charts side by side */
+        .web-charts-row {
+            display: none;
+        }
+        
+        @media (min-width: 768px) {
+            body {
+                padding: 20px;
+            }
+            
+            .dashboard-container {
+                padding: 30px;
+                border-radius: 20px;
+                margin-top: 20px;
+            }
+            
+            .stats-row {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 20px;
+            }
+            
+            .stats-card {
+                padding: 25px;
+                min-height: 140px;
+            }
+            
+            .chart-container {
+                padding: 25px;
+                border-radius: 15px;
+            }
+            
+            .refresh-btn {
+                width: auto;
+                margin: 0;
+            }
+            
+            .mobile-menu {
+                display: none;
+            }
+            
+            /* Show all charts on web view */
+            .mobile-charts {
+                display: none;
+            }
+            
+            .web-charts-row {
+                display: flex;
+            }
+            
+            .chart-toggle {
+                display: none;
+            }
+        }
+        
+        @media (max-width: 767px) {
+            .web-charts-row {
+                display: none;
+            }
+            
+            .mobile-charts {
+                display: block;
+            }
+        }
+        
+        @media (max-width: 576px) {
+            .chart-container canvas {
+                max-height: 250px !important;
+            }
+            
+            .team-card {
+                padding: 16px;
+            }
+            
+            .connection-status {
+                font-size: 0.75rem;
+                padding: 6px 12px;
+                top: 10px;
+                right: 10px;
+            }
+        }
+        
+        /* Touch-friendly elements */
+        button, 
+        .team-card,
+        .stats-card {
+            cursor: pointer;
+            user-select: none;
+        }
+        
+        /* Prevent text selection on mobile */
+        .no-select {
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+        
+        /* Loading Animation */
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 40px;
+        }
+        
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Pull to refresh */
+        #pull-to-refresh {
+            text-align: center;
+            padding: 10px;
+            color: #667eea;
+            opacity: 0.7;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Connection Status -->
+    <div id="connectionStatus" class="connection-status disconnected">
+        <i class="fas fa-wifi"></i> <span id="statusText">Connecting...</span>
+    </div>
+
+    <div class="container-fluid px-0">
+        <div class="dashboard-container">
+            <!-- Header -->
+            <div class="header">
+                <h1><i class="fas fa-chart-line"></i> Voting Analytics</h1>
+                <p class="subtitle">Live tracking & predictions</p>
+                
+                <!-- Stats Row -->
+                <div class="stats-row">
+                    <div class="stats-card">
+                        <p><i class="fas fa-vote-yea"></i> Total Votes</p>
+                        <h3 id="totalVotes">0</h3>
+                    </div>
+                    <div class="stats-card">
+                        <p><i class="fas fa-users"></i> Registered</p>
+                        <h3 id="totalVoters">0</h3>
+                    </div>
+                    <div class="stats-card">
+                        <p><i class="fas fa-percentage"></i> Turnout</p>
+                        <h3 id="turnoutRate">0%</h3>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pull to refresh indicator -->
+            <div id="pull-to-refresh" class="d-md-none">
+                <i class="fas fa-arrow-down"></i> Pull down to refresh
+            </div>
+
+            <!-- Mobile Charts (Single view) -->
+            <div class="mobile-charts">
+                <!-- Chart Toggle for Mobile -->
+                <div class="chart-toggle d-md-none">
+                    <button class="chart-toggle-btn active" onclick="showChart('bar')">
+                        <i class="fas fa-chart-bar"></i> Bar
+                    </button>
+                    <button class="chart-toggle-btn" onclick="showChart('doughnut')">
+                        <i class="fas fa-chart-pie"></i> Pie
+                    </button>
+                    <button class="chart-toggle-btn" onclick="showChart('trend')">
+                        <i class="fas fa-chart-line"></i> Trend
+                    </button>
+                </div>
+
+                <!-- Mobile Single Chart View -->
+                <div class="chart-container" id="barChartContainer">
+                    <h3><i class="fas fa-chart-bar"></i> Live Vote Distribution</h3>
+                    <div style="position: relative; height: 60vh; max-height: 300px;">
+                        <canvas id="voteChart"></canvas>
+                    </div>
+                    <p class="last-update mt-3">
+                        <small><i class="far fa-clock"></i> Updated: <span id="lastUpdateTime">Never</span></small>
+                    </p>
+                </div>
+                
+                <div class="chart-container d-none" id="doughnutChartContainer">
+                    <h3><i class="fas fa-chart-pie"></i> Vote Percentage</h3>
+                    <div style="position: relative; height: 50vh; max-height: 300px;">
+                        <canvas id="doughnutChart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="chart-container d-none" id="trendChartContainer">
+                    <h3><i class="fas fa-chart-line"></i> Voting Trend</h3>
+                    <div style="position: relative; height: 50vh; max-height: 250px;">
+                        <canvas id="trendLineChart"></canvas> <!-- FIXED: Changed ID -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Web Charts (Show all side by side) -->
+            <div class="web-charts-row">
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="chart-container">
+                            <h3><i class="fas fa-chart-bar"></i> Live Vote Distribution</h3>
+                            <div style="position: relative; height: 300px;">
+                                <canvas id="voteChartWeb"></canvas>
+                            </div>
+                            <p class="last-update mt-3">
+                                <small><i class="far fa-clock"></i> Updated: <span id="lastUpdateTimeWeb">Never</span></small>
+                            </p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="chart-container">
+                            <h3><i class="fas fa-chart-pie"></i> Vote Percentage</h3>
+                            <div style="position: relative; height: 300px;">
+                                <canvas id="doughnutChartWeb"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Trend Chart for Web -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="chart-container">
+                            <h3><i class="fas fa-chart-line"></i> Voting Trend Over Time</h3>
+                            <div style="position: relative; height: 300px;">
+                                <canvas id="trendChartWeb"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Team Performance -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="chart-container">
+                        <h3>Team Performance</h3>
+                        <div id="teamProgress">
+                            <!-- Team cards will be inserted here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Predictions and Analytics -->
+            <div class="row mt-4">
+                <div class="col-md-6">
+                    <div class="prediction-card">
+                        <h4><i class="fas fa-crown"></i> Predicted Winner</h4>
+                        <h2 id="predictedWinner" class="mt-3">Team -</h2>
+                        <p id="predictionConfidence" class="mt-2">Confidence: -%</p>
+                        <div class="progress mt-3" style="height: 15px;">
+                            <div id="confidenceBar" class="progress-bar" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="chart-container">
+                        <h4><i class="fas fa-chart-line"></i> Quick Stats</h4>
+                        <div class="row mt-3">
+                            <div class="col-6">
+                                <div class="stats-card" style="background: linear-gradient(135deg, #FF6384 0%, #FF9F40 100%); padding: 15px;">
+                                    <p><i class="fas fa-fire"></i> Leading</p>
+                                    <h3 id="leadingTeam">-</h3>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="stats-card" style="background: linear-gradient(135deg, #36A2EB 0%, #4BC0C0 100%); padding: 15px;">
+                                    <p><i class="fas fa-bolt"></i> Recent</p>
+                                    <h3 id="recentVotes">0</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-6">
+                                <div class="stats-card" style="background: linear-gradient(135deg, #9966FF 0%, #4BC0C0 100%); padding: 15px;">
+                                    <p><i class="fas fa-trophy"></i> Top Team</p>
+                                    <h3 id="topTeam">-</h3>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="stats-card" style="background: linear-gradient(135deg, #FFCE56 0%, #FF9F40 100%); padding: 15px;">
+                                    <p><i class="fas fa-chart-line"></i> Activity</p>
+                                    <h3 id="voteRate">0/min</h3>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Voter Details -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="chart-container">
+                        <div class="d-flex justify-content-between align-items-center mb-3 flex-column flex-md-row gap-3">
+                            <h4 class="mb-0"><i class="fas fa-users"></i> Voter Details</h4>
+                            <div class="d-flex gap-2 w-100 w-md-auto">
+                                <button onclick="refreshData()" class="refresh-btn">
+                                    <i class="fas fa-sync-alt"></i> Refresh
+                                </button>
+                                <button onclick="exportData()" class="refresh-btn" style="background: linear-gradient(135deg, #FF6384 0%, #FF9F40 100%);">
+                                    <i class="fas fa-download"></i> Export
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Search for Mobile -->
+                        <div class="input-group mb-3 d-md-none">
+                            <span class="input-group-text"><i class="fas fa-search"></i></span>
+                            <input type="text" id="voterSearch" class="form-control" placeholder="Search voters..." oninput="filterVoters()">
+                        </div>
+                        
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Voter ID</th>
+                                        <th>Name</th>
+                                        <th class="d-none d-md-table-cell">Phone</th>
+                                        <th>Status</th>
+                                        <th class="d-none d-md-table-cell">Last Updated</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="voterTable">
+                                    <tr>
+                                        <td colspan="5" class="text-center">
+                                            <div class="spinner" style="width: 20px; height: 20px; margin: 0 auto;"></div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <!-- Mobile Pagination -->
+                        <div class="d-flex justify-content-between align-items-center d-md-none mt-3">
+                            <button class="btn btn-sm btn-outline-primary" onclick="prevPage()">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <span id="pageInfo">Page 1</span>
+                            <button class="btn btn-sm btn-outline-primary" onclick="nextPage()">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="footer">
+                <p>© 2024 Electronic Voting System | <span id="connectionStats">0 voters • 0 votes</span></p>
+                <p class="text-muted mt-2">
+                    <small>Auto-updates every 10 seconds • Last sync: <span id="syncTime">-</span></small>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile Navigation Menu -->
+    <div class="mobile-menu d-md-none">
+        <a href="#" class="menu-item active" onclick="scrollToSection('stats')">
+            <i class="fas fa-home menu-icon"></i>
+            <span>Home</span>
+        </a>
+        <a href="#" class="menu-item" onclick="scrollToSection('charts')">
+            <i class="fas fa-chart-bar menu-icon"></i>
+            <span>Charts</span>
+        </a>
+        <a href="#" class="menu-item" onclick="scrollToSection('voters')">
+            <i class="fas fa-users menu-icon"></i>
+            <span>Voters</span>
+        </a>
+        <a href="#" class="menu-item" onclick="refreshData()">
+            <i class="fas fa-sync-alt menu-icon"></i>
+            <span>Refresh</span>
+        </a>
+    </div>
+
+    <!-- Firebase Configuration -->
+    <script>
+        // Firebase configuration - UPDATE WITH YOUR CREDENTIALS
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "e-voting-machine-224a3.firebaseapp.com",
+            databaseURL: "https://e-voting-machine-224a3-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "e-voting-machine-224a3",
+            storageBucket: "e-voting-machine-224a3.appspot.com",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        // Global variables
+        let voteData = { A: 0, B: 0, C: 0, D: 0, E: 0, F: 0 };
+        let voters = {};
+        let voteHistory = [];
+        let charts = {};
+        let lastUpdate = null;
+        let currentPage = 1;
+        const itemsPerPage = 5;
+        let trendData = [];
+
+        // Mobile chart management
+        function showChart(chartType) {
+            // Update toggle buttons
+            document.querySelectorAll('.chart-toggle-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // Show/hide charts
+            document.getElementById('barChartContainer').classList.add('d-none');
+            document.getElementById('doughnutChartContainer').classList.add('d-none');
+            document.getElementById('trendChartContainer').classList.add('d-none');
+            
+            document.getElementById(chartType + 'ChartContainer').classList.remove('d-none');
+        }
+
+        // Scroll to section for mobile
+        function scrollToSection(section) {
+            event.preventDefault();
+            const sections = {
+                'stats': 0,
+                'charts': document.querySelector('.chart-container').offsetTop - 80,
+                'voters': document.querySelector('#voterTable').offsetParent.offsetTop - 80
+            };
+            window.scrollTo({ top: sections[section], behavior: 'smooth' });
+            
+            // Update menu
+            document.querySelectorAll('.menu-item').forEach(item => item.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+
+        // Initialize charts for both mobile and web
+        function initializeCharts() {
+            // Mobile Charts
+            const mobileCtx1 = document.getElementById('voteChart').getContext('2d');
+            charts.voteChartMobile = new Chart(mobileCtx1, {
+                type: 'bar',
+                data: {
+                    labels: ['Team A', 'Team B', 'Team C', 'Team D', 'Team E', 'Team F'],
+                    datasets: [{
+                        label: 'Votes',
+                        data: Object.values(voteData),
+                        backgroundColor: [
+                            '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', 
+                            '#9966FF', '#FF9F40'
+                        ],
+                        borderColor: [
+                            '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', 
+                            '#9966FF', '#FF9F40'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { stepSize: 1 }
+                        }
+                    }
+                }
+            });
+
+            const mobileCtx2 = document.getElementById('doughnutChart').getContext('2d');
+            charts.doughnutChartMobile = new Chart(mobileCtx2, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Team A', 'Team B', 'Team C', 'Team D', 'Team E', 'Team F'],
+                    datasets: [{
+                        data: Object.values(voteData),
+                        backgroundColor: [
+                            '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', 
+                            '#9966FF', '#FF9F40'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+
+            const mobileCtx3 = document.getElementById('trendLineChart').getContext('2d');
+            charts.trendChartMobile = new Chart(mobileCtx3, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [
+                        { label: 'Team A', data: [], borderColor: '#FF6384', fill: false, tension: 0.4 },
+                        { label: 'Team B', data: [], borderColor: '#36A2EB', fill: false, tension: 0.4 },
+                        { label: 'Team C', data: [], borderColor: '#FFCE56', fill: false, tension: 0.4 },
+                        { label: 'Team D', data: [], borderColor: '#4BC0C0', fill: false, tension: 0.4 },
+                        { label: 'Team E', data: [], borderColor: '#9966FF', fill: false, tension: 0.4 },
+                        { label: 'Team F', data: [], borderColor: '#FF9F40', fill: false, tension: 0.4 }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                boxWidth: 12
+                            }
+                        }
+                    },
+                    scales: {
+                        y: { 
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Web Charts (for desktop view)
+            if (window.innerWidth >= 768) {
+                const webCtx1 = document.getElementById('voteChartWeb').getContext('2d');
+                charts.voteChartWeb = new Chart(webCtx1, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Team A', 'Team B', 'Team C', 'Team D', 'Team E', 'Team F'],
+                        datasets: [{
+                            label: 'Votes',
+                            data: Object.values(voteData),
+                            backgroundColor: [
+                                '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', 
+                                '#9966FF', '#FF9F40'
+                            ],
+                            borderColor: [
+                                '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', 
+                                '#9966FF', '#FF9F40'
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: { stepSize: 1 }
+                            }
+                        }
+                    }
+                });
+
+                const webCtx2 = document.getElementById('doughnutChartWeb').getContext('2d');
+                charts.doughnutChartWeb = new Chart(webCtx2, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Team A', 'Team B', 'Team C', 'Team D', 'Team E', 'Team F'],
+                        datasets: [{
+                            data: Object.values(voteData),
+                            backgroundColor: [
+                                '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', 
+                                '#9966FF', '#FF9F40'
+                            ]
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'right'
+                            }
+                        }
+                    }
+                });
+
+                const webCtx3 = document.getElementById('trendChartWeb').getContext('2d');
+                charts.trendChartWeb = new Chart(webCtx3, {
+                    type: 'line',
+                    data: {
+                        labels: [],
+                        datasets: [
+                            { label: 'Team A', data: [], borderColor: '#FF6384', fill: false, tension: 0.4 },
+                            { label: 'Team B', data: [], borderColor: '#36A2EB', fill: false, tension: 0.4 },
+                            { label: 'Team C', data: [], borderColor: '#FFCE56', fill: false, tension: 0.4 },
+                            { label: 'Team D', data: [], borderColor: '#4BC0C0', fill: false, tension: 0.4 },
+                            { label: 'Team E', data: [], borderColor: '#9966FF', fill: false, tension: 0.4 },
+                            { label: 'Team F', data: [], borderColor: '#FF9F40', fill: false, tension: 0.4 }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'top'
+                            }
+                        },
+                        scales: {
+                            y: { 
+                                beginAtZero: true,
+                                ticks: {
+                                    stepSize: 1
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        // Update all charts
+        function updateCharts() {
+            const votes = Object.values(voteData);
+            const total = votes.reduce((a, b) => a + b, 0);
+            const now = new Date();
+            const timeLabel = `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`;
+            
+            // Update mobile charts
+            if (charts.voteChartMobile) {
+                charts.voteChartMobile.data.datasets[0].data = votes;
+                charts.voteChartMobile.update('none');
+            }
+            
+            if (charts.doughnutChartMobile) {
+                charts.doughnutChartMobile.data.datasets[0].data = votes;
+                charts.doughnutChartMobile.update('none');
+            }
+            
+            // Update trend chart data
+            if (trendData.length >= 15) {
+                trendData.shift();
+            }
+            
+            trendData.push({
+                time: timeLabel,
+                votes: { ...voteData }
+            });
+            
+            // Update mobile trend chart
+            if (charts.trendChartMobile) {
+                const labels = trendData.map(d => d.time);
+                charts.trendChartMobile.data.labels = labels;
+                charts.trendChartMobile.data.datasets[0].data = trendData.map(d => d.votes.A);
+                charts.trendChartMobile.data.datasets[1].data = trendData.map(d => d.votes.B);
+                charts.trendChartMobile.data.datasets[2].data = trendData.map(d => d.votes.C);
+                charts.trendChartMobile.data.datasets[3].data = trendData.map(d => d.votes.D);
+                charts.trendChartMobile.data.datasets[4].data = trendData.map(d => d.votes.E);
+                charts.trendChartMobile.data.datasets[5].data = trendData.map(d => d.votes.F);
+                charts.trendChartMobile.update('none');
+            }
+            
+            // Update web charts
+            if (window.innerWidth >= 768) {
+                if (charts.voteChartWeb) {
+                    charts.voteChartWeb.data.datasets[0].data = votes;
+                    charts.voteChartWeb.update('none');
+                }
+                
+                if (charts.doughnutChartWeb) {
+                    charts.doughnutChartWeb.data.datasets[0].data = votes;
+                    charts.doughnutChartWeb.update('none');
+                }
+                
+                if (charts.trendChartWeb) {
+                    const labels = trendData.map(d => d.time);
+                    charts.trendChartWeb.data.labels = labels;
+                    charts.trendChartWeb.data.datasets[0].data = trendData.map(d => d.votes.A);
+                    charts.trendChartWeb.data.datasets[1].data = trendData.map(d => d.votes.B);
+                    charts.trendChartWeb.data.datasets[2].data = trendData.map(d => d.votes.C);
+                    charts.trendChartWeb.data.datasets[3].data = trendData.map(d => d.votes.D);
+                    charts.trendChartWeb.data.datasets[4].data = trendData.map(d => d.votes.E);
+                    charts.trendChartWeb.data.datasets[5].data = trendData.map(d => d.votes.F);
+                    charts.trendChartWeb.update('none');
+                }
+                
+                document.getElementById('lastUpdateTimeWeb').textContent = now.toLocaleTimeString();
+            }
+            
+            // Update stats
+            document.getElementById('totalVotes').textContent = total;
+            document.getElementById('totalVoters').textContent = Object.keys(voters).length;
+            
+            const votedCount = Object.values(voters).filter(v => v.hasVoted).length;
+            const turnoutRate = Object.keys(voters).length > 0 
+                ? Math.round((votedCount / Object.keys(voters).length) * 100) 
+                : 0;
+            document.getElementById('turnoutRate').textContent = `${turnoutRate}%`;
+            
+            // Update last update time
+            document.getElementById('lastUpdateTime').textContent = now.toLocaleTimeString();
+            document.getElementById('syncTime').textContent = now.toLocaleTimeString();
+            
+            // Update connection stats
+            document.getElementById('connectionStats').textContent = 
+                `${Object.keys(voters).length} voters • ${total} votes`;
+            
+            // Update quick stats
+            updateQuickStats();
+        }
+
+        // Update quick stats
+        function updateQuickStats() {
+            const votes = Object.values(voteData);
+            const total = votes.reduce((a, b) => a + b, 0);
+            
+            // Find leading team
+            let maxVotes = 0;
+            let winningTeam = '';
+            let topTeam = '';
+            
+            Object.entries(voteData).forEach(([team, votes]) => {
+                if (votes > maxVotes) {
+                    maxVotes = votes;
+                    winningTeam = team;
+                }
+            });
+            
+            document.getElementById('leadingTeam').textContent = winningTeam ? `Team ${winningTeam}` : '-';
+            document.getElementById('topTeam').textContent = winningTeam ? `Team ${winningTeam}` : '-';
+            
+            // Calculate recent votes (mock for now)
+            const recentVotes = Math.floor(Math.random() * 5);
+            document.getElementById('recentVotes').textContent = recentVotes;
+            
+            // Calculate vote rate
+            if (trendData.length > 1) {
+                const timeDiff = 15; // 15 data points
+                const voteDiff = total - (trendData[0] ? Object.values(trendData[0].votes).reduce((a, b) => a + b, 0) : 0);
+                const voteRate = Math.round((voteDiff / timeDiff) * 6); // Convert to per minute
+                document.getElementById('voteRate').textContent = `${voteRate}/min`;
+            } else {
+                document.getElementById('voteRate').textContent = '0/min';
+            }
+        }
+
+        // Original team progress function
+        function updateTeamProgress() {
+            const votes = Object.values(voteData);
+            const total = votes.reduce((a, b) => a + b, 0);
+            const teams = ['A', 'B', 'C', 'D', 'E', 'F'];
+            
+            let progressHTML = '';
+            teams.forEach((team, index) => {
+                const votesForTeam = voteData[team];
+                const percentage = total > 0 ? Math.round((votesForTeam / total) * 100) : 0;
+                
+                progressHTML += `
+                    <div class="team-card">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="team-name">Team ${team}</div>
+                            <div class="vote-count">${votesForTeam} votes</div>
+                        </div>
+                        <div class="percentage-bar mt-2">
+                            <div class="percentage-fill" style="width: ${percentage}%"></div>
+                        </div>
+                        <div class="d-flex justify-content-between mt-2">
+                            <small>${percentage}% of total</small>
+                            <small>Rank: ${getTeamRank(team)}</small>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            document.getElementById('teamProgress').innerHTML = progressHTML;
+        }
+
+        // Get team rank
+        function getTeamRank(team) {
+            const sortedTeams = Object.entries(voteData)
+                .sort((a, b) => b[1] - a[1])
+                .map(item => item[0]);
+            return sortedTeams.indexOf(team) + 1;
+        }
+
+        // Calculate predictions
+        function calculatePredictions() {
+            const votes = Object.values(voteData);
+            const total = votes.reduce((a, b) => a + b, 0);
+            
+            if (total === 0) {
+                document.getElementById('predictedWinner').textContent = 'No votes yet';
+                document.getElementById('predictionConfidence').textContent = 'Confidence: 0%';
+                document.getElementById('confidenceBar').style.width = '0%';
+                return;
+            }
+            
+            // Find winning team
+            let maxVotes = 0;
+            let winningTeam = '';
+            
+            Object.entries(voteData).forEach(([team, votes]) => {
+                if (votes > maxVotes) {
+                    maxVotes = votes;
+                    winningTeam = team;
+                }
+            });
+            
+            // Calculate confidence (based on lead percentage)
+            const secondBest = Object.values(voteData)
+                .sort((a, b) => b - a)[1] || 0;
+            const lead = maxVotes - secondBest;
+            const confidence = total > 0 ? Math.min(Math.round((lead / total) * 100), 100) : 0;
+            
+            document.getElementById('predictedWinner').textContent = `Team ${winningTeam}`;
+            document.getElementById('predictionConfidence').textContent = `Confidence: ${confidence}%`;
+            document.getElementById('confidenceBar').style.width = `${confidence}%`;
+            
+            // Add confidence class based on level
+            const confidenceBar = document.getElementById('confidenceBar');
+            confidenceBar.className = 'progress-bar';
+            if (confidence > 70) confidenceBar.classList.add('bg-success');
+            else if (confidence > 40) confidenceBar.classList.add('bg-warning');
+            else confidenceBar.classList.add('bg-danger');
+        }
+
+        // Update voter table with pagination
+        function updateVoterTable() {
+            const voterArray = Object.entries(voters);
+            const totalPages = Math.ceil(voterArray.length / itemsPerPage);
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage;
+            const pageVoters = voterArray.slice(startIndex, endIndex);
+            
+            let tableHTML = '';
+            pageVoters.forEach(([voterID, data]) => {
+                tableHTML += `
+                    <tr>
+                        <td><strong>${voterID}</strong></td>
+                        <td>${data.name || 'N/A'}</td>
+                        <td class="d-none d-md-table-cell">${data.phone || 'N/A'}</td>
+                        <td>
+                            <span class="badge ${data.hasVoted ? 'bg-success' : 'bg-warning'}">
+                                ${data.hasVoted ? '✓ Voted' : 'Pending'}
+                            </span>
+                        </td>
+                        <td class="d-none d-md-table-cell">${new Date().toLocaleTimeString()}</td>
+                    </tr>
+                `;
+            });
+            
+            if (voterArray.length === 0) {
+                tableHTML = '<tr><td colspan="5" class="text-center">No voters found</td></tr>';
+            }
+            
+            document.getElementById('voterTable').innerHTML = tableHTML;
+            document.getElementById('pageInfo').textContent = `Page ${currentPage} of ${totalPages || 1}`;
+        }
+
+        // Pagination functions
+        function nextPage() {
+            const totalPages = Math.ceil(Object.keys(voters).length / itemsPerPage);
+            if (currentPage < totalPages) {
+                currentPage++;
+                updateVoterTable();
+            }
+        }
+
+        function prevPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                updateVoterTable();
+            }
+        }
+
+        // Filter voters for mobile search
+        function filterVoters() {
+            const searchTerm = document.getElementById('voterSearch').value.toLowerCase();
+            // Implement search logic here
+        }
+
+        // Export data
+        function exportData() {
+            const dataStr = JSON.stringify({
+                votes: voteData,
+                voters: voters,
+                trend: trendData,
+                timestamp: new Date().toISOString()
+            }, null, 2);
+            const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+            const exportFileDefaultName = `voting-data-${new Date().toISOString().slice(0,10)}.json`;
+            
+            const linkElement = document.createElement('a');
+            linkElement.setAttribute('href', dataUri);
+            linkElement.setAttribute('download', exportFileDefaultName);
+            linkElement.click();
+        }
+
+        // Load votes data from Firebase
+        function loadVotesData() {
+            database.ref('Votes').on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    voteData = {
+                        A: data.A || 0,
+                        B: data.B || 0,
+                        C: data.C || 0,
+                        D: data.D || 0,
+                        E: data.E || 0,
+                        F: data.F || 0
+                    };
+                    lastUpdate = data.lastUpdate || Date.now();
+                    updateCharts();
+                    updateTeamProgress();
+                    calculatePredictions();
+                }
+            });
+        }
+
+        // Load voters data from Firebase
+        function loadVotersData() {
+            database.ref('Voters/voters').on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    voters = data;
+                    updateVoterTable();
+                }
+            });
+        }
+
+        // Monitor connection status
+        function monitorConnection() {
+            const connectedRef = database.ref(".info/connected");
+            const statusElement = document.getElementById('connectionStatus');
+            const statusText = document.getElementById('statusText');
+            
+            connectedRef.on("value", (snap) => {
+                if (snap.val() === true) {
+                    statusText.textContent = "Connected";
+                    statusElement.className = "connection-status connected";
+                } else {
+                    statusText.textContent = "Disconnected";
+                    statusElement.className = "connection-status disconnected";
+                }
+            });
+        }
+
+        // Handle pull to refresh
+        let touchStartY = 0;
+        document.addEventListener('touchstart', e => {
+            touchStartY = e.touches[0].clientY;
+        });
+        
+        document.addEventListener('touchmove', e => {
+            const touchY = e.touches[0].clientY;
+            const pullDown = touchY - touchStartY;
+            
+            if (pullDown > 100 && window.scrollY === 0) {
+                refreshData();
+            }
+        });
+
+        // Refresh all data
+        function refreshData() {
+            loadVotesData();
+            loadVotersData();
+            
+            // Show refresh animation
+            const btn = event?.target?.closest('.refresh-btn');
+            if (btn) {
+                const icon = btn.querySelector('i');
+                icon.className = 'fas fa-spinner fa-spin';
+                setTimeout(() => {
+                    icon.className = 'fas fa-sync-alt';
+                }, 1000);
+            }
+        }
+
+        // Initialize everything
+        window.onload = function() {
+            initializeCharts();
+            monitorConnection();
+            loadVotesData();
+            loadVotersData();
+            
+            // Auto-refresh
+            setInterval(refreshData, 10000);
+            
+            // Handle window resize
+            window.addEventListener('resize', function() {
+                // Reinitialize charts on resize
+                if (window.innerWidth >= 768) {
+                    // If web charts don't exist, create them
+                    if (!charts.voteChartWeb) {
+                        const webCtx1 = document.getElementById('voteChartWeb').getContext('2d');
+                        charts.voteChartWeb = new Chart(webCtx1, {
+                            type: 'bar',
+                            data: {
+                                labels: ['Team A', 'Team B', 'Team C', 'Team D', 'Team E', 'Team F'],
+                                datasets: [{
+                                    label: 'Votes',
+                                    data: Object.values(voteData),
+                                    backgroundColor: [
+                                        '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', 
+                                        '#9966FF', '#FF9F40'
+                                    ],
+                                    borderColor: [
+                                        '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', 
+                                        '#9966FF', '#FF9F40'
+                                    ],
+                                    borderWidth: 1
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    legend: { display: false }
+                                },
+                                scales: {
+                                    y: {
+                                        beginAtZero: true,
+                                        ticks: { stepSize: 1 }
+                                    }
+                                }
+                            }
+                        });
+                        
+                        const webCtx2 = document.getElementById('doughnutChartWeb').getContext('2d');
+                        charts.doughnutChartWeb = new Chart(webCtx2, {
+                            type: 'doughnut',
+                            data: {
+                                labels: ['Team A', 'Team B', 'Team C', 'Team D', 'Team E', 'Team F'],
+                                datasets: [{
+                                    data: Object.values(voteData),
+                                    backgroundColor: [
+                                        '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', 
+                                        '#9966FF', '#FF9F40'
+                                    ]
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    legend: {
+                                        position: 'right'
+                                    }
+                                }
+                            }
+                        });
+                        
+                        const webCtx3 = document.getElementById('trendChartWeb').getContext('2d');
+                        charts.trendChartWeb = new Chart(webCtx3, {
+                            type: 'line',
+                            data: {
+                                labels: trendData.map(d => d.time),
+                                datasets: [
+                                    { label: 'Team A', data: trendData.map(d => d.votes.A), borderColor: '#FF6384', fill: false, tension: 0.4 },
+                                    { label: 'Team B', data: trendData.map(d => d.votes.B), borderColor: '#36A2EB', fill: false, tension: 0.4 },
+                                    { label: 'Team C', data: trendData.map(d => d.votes.C), borderColor: '#FFCE56', fill: false, tension: 0.4 },
+                                    { label: 'Team D', data: trendData.map(d => d.votes.D), borderColor: '#4BC0C0', fill: false, tension: 0.4 },
+                                    { label: 'Team E', data: trendData.map(d => d.votes.E), borderColor: '#9966FF', fill: false, tension: 0.4 },
+                                    { label: 'Team F', data: trendData.map(d => d.votes.F), borderColor: '#FF9F40', fill: false, tension: 0.4 }
+                                ]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    legend: {
+                                        position: 'top'
+                                    }
+                                },
+                                scales: {
+                                    y: { 
+                                        beginAtZero: true,
+                                        ticks: {
+                                            stepSize: 1
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                    }
+                }
+                
+                // Resize all existing charts
+                Object.values(charts).forEach(chart => {
+                    if (chart && chart.resize) chart.resize();
+                });
+            });
+        };
+    </script>
+</body>
+</html>
