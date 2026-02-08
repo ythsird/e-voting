@@ -34,13 +34,55 @@
             overflow-x: hidden;
         }
         
+        /* E-Voting Machine Header */
+        .evoting-header {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: var(--card-shadow);
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .school-logo {
+            width: 70px;
+            height: 70px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        .evoting-title {
+            color: #333;
+            font-weight: 700;
+            font-size: clamp(1.5rem, 4vw, 2rem);
+            margin: 0;
+        }
+        
+        .evoting-title span {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
         /* Mobile-first responsive container */
         .dashboard-container {
             background: rgba(255, 255, 255, 0.98);
             border-radius: 16px;
             padding: 20px 15px;
             box-shadow: var(--card-shadow);
-            margin-top: 10px;
+            margin-top: 0;
             width: 100%;
             max-width: 100%;
             overflow: hidden;
@@ -344,10 +386,22 @@
                 padding: 20px;
             }
             
+            .evoting-header {
+                padding: 20px;
+                margin-bottom: 20px;
+                border-radius: 20px;
+            }
+            
+            .school-logo {
+                width: 80px;
+                height: 80px;
+                font-size: 28px;
+            }
+            
             .dashboard-container {
                 padding: 30px;
                 border-radius: 20px;
-                margin-top: 20px;
+                margin-top: 0;
             }
             
             .stats-row {
@@ -396,6 +450,12 @@
             .mobile-charts {
                 display: block;
             }
+            
+            .evoting-header {
+                flex-direction: column;
+                gap: 10px;
+                padding: 15px 10px;
+            }
         }
         
         @media (max-width: 576px) {
@@ -412,6 +472,10 @@
                 padding: 6px 12px;
                 top: 10px;
                 right: 10px;
+            }
+            
+            .evoting-title {
+                font-size: clamp(1.3rem, 5vw, 1.8rem);
             }
         }
         
@@ -467,6 +531,14 @@
     <!-- Connection Status -->
     <div id="connectionStatus" class="connection-status disconnected">
         <i class="fas fa-wifi"></i> <span id="statusText">Connecting...</span>
+    </div>
+
+    <!-- E-Voting Machine Header with School Logo -->
+    <div class="evoting-header">
+        <div class="school-logo">
+            <img src="images.png" alt="Riviera International Academy" style="width: 100%; height: 100%; object-fit: contain; border-radius: 50%;">
+        </div>
+        <h1 class="evoting-title"><span>E-Voting Machine</span></h1>
     </div>
 
     <div class="container-fluid px-0">
@@ -694,7 +766,7 @@
 
             <!-- Footer -->
             <div class="footer">
-                <p>© 2024 Electronic Voting System | <span id="connectionStats">0 voters • 0 votes</span></p>
+                <p>© 2024 Riviera International Academy | <span id="connectionStats">0 voters • 0 votes</span></p>
                 <p class="text-muted mt-2">
                     <small>Auto-updates every 10 seconds • Last sync: <span id="syncTime">-</span></small>
                 </p>
